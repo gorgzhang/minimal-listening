@@ -1,0 +1,18 @@
+.App {
+  background-color: grey;
+  text-align: center;
+  min-height: 100vh;
+  display: flex;
+  font-size: calc(10px + 2vmin);
+  color: black;
+  justify-content: center; /* Horizontal */
+  align-items: center; /* Vertical */
+  flex-direction: column;
+}
+
+.button {
+  margin: 10px;
+  height: 100%;
+  background-color: pink;
+  color: orange;
+}
