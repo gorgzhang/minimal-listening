@@ -13,7 +13,7 @@ export default class Button extends Component {
 
 	handleClick(name, action) {
 		if (name === "login") {
-			var scopes = "streaming user-read-birthdate user-read-email user-read-private user-read-currently-playing user-read-playback-state"
+			var scopes = "streaming user-read-birthdate user-read-email user-read-private user-read-currently-playing user-read-playback-state user-library-modify"
 			var LOGIN_URL = "https://accounts.spotify.com/authorize?client_id=" + CLIENT_ID + 
 				 "&response_type=token&redirect_uri=" + REDIRECT_URI +
 				 "&show_dialog=true" +
