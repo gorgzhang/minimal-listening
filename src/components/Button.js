@@ -6,14 +6,14 @@ const REDIRECT_URI = "https://minimal-listening.herokuapp.com/"
 
 export default class Button extends Component {
 
-	constructor(props) {
-		super(props)
-		console.log("constructed with", props.name)
-	}
+	// constructor(props) {
+	// 	super(props)
+	// 	console.log("constructed with", props.name)
+	// }
 
 	handleClick(name, action) {
 		if (name === "login") {
-			var scopes = "streaming user-read-birthdate user-read-email user-read-private"
+			var scopes = "streaming user-read-birthdate user-read-email user-read-private user-read-currently-playing user-read-playback-state"
 			var LOGIN_URL = "https://accounts.spotify.com/authorize?client_id=" + CLIENT_ID + 
 				 "&response_type=token&redirect_uri=" + REDIRECT_URI +
 				 "&show_dialog=true" +

@@ -23,19 +23,19 @@ export default class Login extends Component {
       // Get 50 recent album releases
       var DISC_REQ_URL = "https://api.spotify.com/v1/browse/new-releases?country=US&limit=50&access_token=" + token
       axios.get(CORS_ANYWHERE + DISC_REQ_URL)
-      .then(response => {
-          console.log(response.data.albums)
-          this.state = {
-            loggedIn: true,
-            accessToken: token,
-            newMusic: response.data.albums.items,
-            currTrack: null,
+        .then(response => {
+            console.log(response.data.albums)
+            this.state = {
+              loggedIn: true,
+              accessToken: token,
+              newMusic: response.data.albums.items,
+              currTrack: null,
+            }
           }
-        }
-      ).catch(function (err) {
-          console.log(err);
-        }
-      )
+        ).catch(function (err) {
+            console.log(err);
+          }
+        )
 
       this.playerCheckInterval = setInterval(() => this.checkForPlayer(), 1000);
     } else {
@@ -49,7 +49,12 @@ export default class Login extends Component {
     }
     this.getSong = this.getSong.bind(this)
     this.logState = this.logState.bind(this)
+    this.getCurrentSong = this.getCurrentSong.bind(this)
   }
+
+
+
+  /** START PLAYER FUNCTIONS **/
 
   checkForPlayer() {
     var accessToken = this.state.accessToken;
@@ -75,33 +80,70 @@ export default class Login extends Component {
     this.player.on('playback_error', e => { console.error(e); });
 
     // Playback status updates
-    this.player.on('player_state_changed', state => { console.log(state); });
+    this.player.on('player_state_changed', currState => this.onStateChanged(currState));
 
     // Ready
-    this.player.on('ready', data => {
+    this.player.on('ready', async data => {
       let { device_id } = data;
       console.log("Let the music play on!");
-      this.setState({ 
+      await this.setState({ 
         ...this.state,
         deviceId: device_id
       });
+      this.transferPlaybackHere();
     });
   }
 
-  logState() {
-    console.log('logging state...')
-    if (this.state) {
-      console.log(this.state)
+  onStateChanged(currState) {
+    // if we're no longer listening to music, we'll get a null state.
+    if (currState !== null) {
+      const currentTrack = currState.track_window.current_track;
+      const currTrackName = currentTrack.name;
+      const currAlbumName = currentTrack.album.name;
+      const currArtistName = currentTrack.artists
+        .map(artist => artist.name)
+        .join(", ");
+      const playing = !currState.paused;
+      this.setState({
+        ...this.state,
+        currTrackName,
+        currAlbumName,
+        currArtistName,
+        playing
+      });
     }
   }
 
+  transferPlaybackHere() {
+    const { deviceId, accessToken } = this.state;
+    fetch("https://api.spotify.com/v1/me/player", {
+      method: "PUT",
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        "device_ids": [ deviceId ],
+        "play": false,
+      }),
+    })
+  }
+  
+  onPlayClick() {
+    this.player.togglePlay();
+  }
+  /** END PLAYER FUNCTIONS **/
+
+
+  /** START SONG PARSING **/
+
   getSong() {
     if (this.state.loggedIn) {
+      console.log("hello")
       var index = Math.floor(Math.random() * 50)
       var currAlbum = this.state.newMusic[index]
       this.parseAlbum(currAlbum)
     }
-
   }
 
   parseAlbum(album) {
@@ -119,7 +161,7 @@ export default class Login extends Component {
           console.log(response.data.items[0])
           this.setState({
             ...this.state,
-            currTrack: response.data.items[0],
+            discoverTrack: response.data.items[0],
           })
         }
       ).catch(function (err) {
@@ -128,14 +170,69 @@ export default class Login extends Component {
       )
   }
 
-  setAlbumSettings(album) {
+  async setAlbumSettings(album) {
     console.log("hello")
-    this.setState({
+    await this.setState({
       ...this.state,
-      albumName: album.name,
-      albumReleaseDate: album.release_date,
-      albumId: album.id
+      discoverAlbumName: album.name,
+      discoverAlbumReleaseDate: album.release_date,
+      discoverAlbumId: album.id
     })
+  }
+
+  /** END SONG PARSING **/
+
+  /** START SONG INFO **/ 
+
+  getCurrentSong() {
+    if (this.state && this.state.deviceId) {
+      const CURR_SONG_URL = "https://api.spotify.com/v1/me/player/currently-playing/?access_token=" + this.state.accessToken
+      console.log(CURR_SONG_URL)
+      axios.get(CORS_ANYWHERE + CURR_SONG_URL)
+        .then(response => {
+          console.log(response.data)
+        })
+        .catch(function (err) {
+            console.log(err);
+          }
+        )
+
+    }
+  }
+
+  getSongDetails(sid) {
+    if (this.state.deviceId !== null) {
+      console.log("hello")
+    }
+
+  }
+
+  playDiscoverSong() {
+    if (this.state && this.state.deviceId) {
+      this.getSong()
+      setTimeout(() => {
+        var songURI = this.state.discoverTrack.uri
+        fetch("https://api.spotify.com/v1/me/player/play", {
+          method: "PUT",
+          headers: {
+            authorization: `Bearer ${this.state.accessToken}`,
+          },
+          device_id: this.state.deviceId,
+          body: JSON.stringify({
+            "uris": [songURI]
+          }),
+        })
+      }, 500)
+    }
+  }
+
+  /** END SONG INFO **/
+
+  logState() {
+    console.log('logging state...')
+    if (this.state) {
+      console.log(this.state)
+    }
   }
 
 	render() {
@@ -145,7 +242,18 @@ export default class Login extends Component {
         <Button name="print" action={this.logState}/>
         <Button name="discover" action={this.discoverNewArtists}/>
         <Button name="getSong" action={this.getSong}/>
+        {this.state && this.state.deviceId !== null && (
+          <div>
+            <div>Artist: {this.state.currArtistName}</div>
+            <div>Track: {this.state.currTrackName}</div>
+            <div>Album: {this.state.currAlbumName}</div>
+            <Button name={this.state.playing ? "Pause" : "Play"} action={() => this.onPlayClick()}/>
+            <Button name="getInfo" action={this.getCurrentSong}/>
+            <Button name="playDiscoverSong" action={() => this.playDiscoverSong()}/>
+          </div>)
+        }
 			</div>
+
 		)
 	}
 
