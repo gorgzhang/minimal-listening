@@ -1,23 +1,19 @@
 import React, { Component } from 'react';
-// import {BrowserRouter as Router, Route, Link} from "react-router-dom";
-import Login from './components/Login.js'
+import Home from './components/Home.js'
+import RedirectPage from './components/RedirectPage.js'
+import {BrowserRouter as Router, Route} from "react-router-dom";
 import './css/App.css';
 
 class App extends Component {
+
   render() {
     return (
-      <div className="App">
-        <Login/>
-        {/*
-        <Router>
-          <Link to="/">Login</Link>
-          <Link to="/discover/">Discover</Link>
-          <Route path="/" exact render={() => <Login/>}/>
-          <Route path="/discover/" exact render={() => <Button name="discover" action={this.logState}/>}/>
-        </Router>
-        */}
-      </div>
-     
+      <Router>
+        <div className='App'>
+          <Route exact path="/" component={Home} />
+          <Route exact path="/redirect" component={RedirectPage} />
+        </div>
+      </Router>
     );
   }
 }

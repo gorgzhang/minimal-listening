@@ -1,17 +1,13 @@
 import React, {Component} from 'react';
 
 const CLIENT_ID = "9eca37cf81d94340ba6627853b621ae7"
-const REDIRECT_URI = "https://minimal-listening.herokuapp.com/"
+const REDIRECT_URI = "https://minimal-listening.herokuapp.com/redirect"
 // const CORS_ANYWHERE = "https://cors-anywhere.herokuapp.com/"
 
 export default class Button extends Component {
 
-	// constructor(props) {
-	// 	super(props)
-	// 	console.log("constructed with", props.name)
-	// }
-
 	handleClick(name, action) {
+		// Redirect for login
 		if (name === "login") {
 			var scopes = "streaming user-read-birthdate user-read-email user-read-private user-read-currently-playing user-read-playback-state user-library-modify"
 			var LOGIN_URL = "https://accounts.spotify.com/authorize?client_id=" + CLIENT_ID + 

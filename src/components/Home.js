@@ -1,35 +1,33 @@
 import React, { Component } from 'react';
-// import {BrowserRouter as Router, Route, Link} from "react-router-dom";
 import Button from './Button.js';
+import Track from './Track.js';
 import './../css/App.css';
+import './../css/Home.css';
 import axios from 'axios'
+
 
 const CORS_ANYWHERE = "https://cors-anywhere.herokuapp.com/"
 
-export default class Login extends Component {
+export default class Home extends Component {
 
   constructor(props) {
     super(props)
-
+    var accessToken = null;
+    if (this.props.location.state) {
+      accessToken = this.props.location.state.token
+    }
     this.playerCheckInterval = null;
-    var hash = document.location["hash"]
-    // var at = "BQDp8lcACW2zfTWnGh-ecgDx041AuwDk2STSRwRzglhc0GaaNVk_a6GOdl72P3oS-30_9Tl3CXEZjzwjHeQddr_POAHaHzojP8MJ9RA7WbtkxjMHJZ-l4FlhXt1HxdjSb6lOOyPdNw9p3UK_miMqKe-Mx2WfOxRaH_Y"
-    // var hash = "#access_token=" + at + "&token_type=Bearer&expires_in=3600"
-
-    if (hash) {
-      // Logged in
-      var token = hash.split("=")[1].split("&")[0]
-      console.log(token)
-      // Get 50 recent album releases
-      var DISC_REQ_URL = "https://api.spotify.com/v1/browse/new-releases?country=US&limit=50&access_token=" + token
+    if (accessToken) {
+      // Logged in - Get 50 recent album releases
+      var DISC_REQ_URL = "https://api.spotify.com/v1/browse/new-releases?country=US&limit=50&access_token=" + accessToken
       axios.get(CORS_ANYWHERE + DISC_REQ_URL)
         .then(response => {
-            console.log(response.data.albums)
             this.state = {
               loggedIn: true,
-              accessToken: token,
+              accessToken: accessToken,
               newMusic: response.data.albums.items,
-              currTrack: null,
+              displayTrackInfo: false,
+              saved: false,
             }
           }
         ).catch(function (err) {
@@ -42,24 +40,21 @@ export default class Login extends Component {
       // Not logged in yet
       this.state = {
         loggedIn: false,
-        accessToken: null,
-        newMusic: null,
-        currTrack: null,
+        displayTrackInfo: false,
+        saved: false,
       }
     }
-    this.getTrack = this.getTrack.bind(this)
+    this.getDiscoverTrack = this.getDiscoverTrack.bind(this)
     this.logState = this.logState.bind(this)
     this.getCurrentTrack = this.getCurrentTrack.bind(this)
   }
 
-
-
   /** START PLAYER FUNCTIONS **/
 
+  // Wait for player to load
   checkForPlayer() {
-    var accessToken = this.state.accessToken;
-
-    if (window.Spotify !== null) {
+    if (this.state && this.state.loggedIn && window.Spotify) {
+      var accessToken = this.state.accessToken;
       this.player = new window.Spotify.Player({
         name: "Minimal Player",
         getOAuthToken: cb => { cb(accessToken); },
@@ -70,6 +65,7 @@ export default class Login extends Component {
     }
   }
 
+  // Listeners for the player
   createEventHandlers() {
     this.player.on('initialization_error', e => { console.error(e); });
     this.player.on('authentication_error', e => {
@@ -85,7 +81,6 @@ export default class Login extends Component {
     // Ready
     this.player.on('ready', async data => {
       let { device_id } = data;
-      console.log("Let the music play on!");
       await this.setState({ 
         ...this.state,
         deviceId: device_id
@@ -100,6 +95,7 @@ export default class Login extends Component {
       const currTrack = currState.track_window.current_track;
       const currTrackName = currTrack.name;
       const currAlbumName = currTrack.album.name;
+      const currAlbumImage = currTrack.album.images[0].url
       const currArtistName = currTrack.artists
         .map(artist => artist.name)
         .join(", ");
@@ -109,12 +105,14 @@ export default class Login extends Component {
         currTrack,
         currTrackName,
         currAlbumName,
+        currAlbumImage,
         currArtistName,
         playing
       });
     }
   }
 
+  // Automatically play in web instead of desktop app
   transferPlaybackHere() {
     const { deviceId, accessToken } = this.state;
     fetch("https://api.spotify.com/v1/me/player", {
@@ -130,6 +128,7 @@ export default class Login extends Component {
     })
   }
 
+  // Toggle play/pause
   onPlayClick() {
     this.player.togglePlay();
   }
@@ -138,28 +137,22 @@ export default class Login extends Component {
 
   /** START TRACK PARSING **/
 
-  getTrack() {
+  // Discover New Track from releases
+  async getDiscoverTrack() {
     if (this.state.loggedIn) {
-      console.log("hello")
       var index = Math.floor(Math.random() * 50)
       var currAlbum = this.state.newMusic[index]
-      this.parseAlbum(currAlbum)
+      var currAlbumLength = currAlbum.total_tracks
+      var offSet =  Math.floor(Math.random() * currAlbumLength)
+      await this.setDiscoverTrackFromAlbum(currAlbum.id, offSet)
     }
   }
 
-  parseAlbum(album) {
-    console.log(album)
-    var albumLength = album.total_tracks
-    var offSet =  Math.floor(Math.random() * albumLength)
-    this.getTrackFromAlbum(album.id, offSet)
-    this.setAlbumSettings(album)
-  }
-
-  getTrackFromAlbum(albumId, offset) {
+  // Set discover track state
+  async setDiscoverTrackFromAlbum(albumId, offset) {
     var TRACK_REQ_URL = "https://api.spotify.com/v1/albums/" + albumId + "/tracks/?access_token=" + this.state.accessToken + "&offset=" + offset
-    axios.get(CORS_ANYWHERE + TRACK_REQ_URL)
+    await axios.get(CORS_ANYWHERE + TRACK_REQ_URL)
       .then(response => {
-          console.log(response.data.items[0])
           this.setState({
             ...this.state,
             discoverTrack: response.data.items[0],
@@ -171,47 +164,30 @@ export default class Login extends Component {
       )
   }
 
-  async setAlbumSettings(album) {
-    console.log("hello")
-    await this.setState({
-      ...this.state,
-      discoverAlbumName: album.name,
-      discoverAlbumReleaseDate: album.release_date,
-      discoverAlbumId: album.id
-    })
-  }
-
   /** END TRACK PARSING **/
 
   /** START TRACK INFO **/ 
 
+  // Get info about what's currently playing
   getCurrentTrack() {
     if (this.state && this.state.deviceId) {
       const CURR_TRACK_URL = "https://api.spotify.com/v1/me/player/currently-playing/?access_token=" + this.state.accessToken
-      console.log(CURR_TRACK_URL)
       axios.get(CORS_ANYWHERE + CURR_TRACK_URL)
         .then(response => {
+          console.log("I dont use this yet...")
           console.log(response.data)
         })
         .catch(function (err) {
             console.log(err);
           }
         )
-
     }
   }
 
-  getTrackDetails(sid) {
-    if (this.state.deviceId !== null) {
-      console.log("hello")
-    }
-
-  }
-
-  playDiscoverTrack() {
+  // Query a discover track and play it
+  async playDiscoverTrack() {
     if (this.state && this.state.deviceId) {
-      this.getTrack()
-      setTimeout(() => {
+        await this.getDiscoverTrack()
         var trackURI = this.state.discoverTrack.uri
         fetch("https://api.spotify.com/v1/me/player/play", {
           method: "PUT",
@@ -222,11 +198,11 @@ export default class Login extends Component {
           body: JSON.stringify({
             "uris": [trackURI]
           }),
-        })
-      }, 500)
+        }).then(() => {this.setState({...this.state, saved: false})})
     }
   }
 
+  // Save what is currently playing
   saveCurrentTrack() {
     if (this.state && this.state.deviceId) {
       var currTrackId = this.state.currTrack.id
@@ -240,40 +216,56 @@ export default class Login extends Component {
         body: JSON.stringify({
             "ids": [currTrackId]
           }),
+      }).then(() => {
+        this.setState({
+          ...this.state,
+          saved: true
+        })
       })
     }
   }
 
   /** END TRACK INFO **/
 
+  /** START PAGE STATE **/
+
+  // Whether to hide track info or not
+  displayTrackInfo() {
+    this.setState({
+      ...this.state,
+      displayTrackInfo: !this.state.displayTrackInfo
+    })
+  }
+
   logState() {
-    console.log('logging state...')
     if (this.state) {
       console.log(this.state)
     }
   }
 
+  /** END PAGE STATE **/
+
 	render() {
 		return (
-			<div className="login">
-				<Button name="login"/>
-        <Button name="print" action={this.logState}/>
-        <Button name="discover" action={this.discoverNewArtists}/>
-        <Button name="getTrack" action={this.getTrack}/>
-        {this.state && this.state.deviceId !== null && (
+			<div>
+      <Button name="print" action={this.logState}/>
+        {!this.state && (<div> loading... </div>)}
+        {this.state && !this.state.loggedIn && (<Button name="login"/>)}
+        {this.state && this.state.loggedIn && this.state.deviceId && (
           <div>
-            <div>Artist: {this.state.currArtistName}</div>
-            <div>Track: {this.state.currTrackName}</div>
-            <div>Album: {this.state.currAlbumName}</div>
             <Button name={this.state.playing ? "Pause" : "Play"} action={() => this.onPlayClick()}/>
-            <Button name="getInfo" action={this.getCurrentTrack}/>
-            <Button name="playDiscoverTrack" action={() => this.playDiscoverTrack()}/>
-            <Button name="saveCurrentTrack" action={() => this.saveCurrentTrack()}/>
+            <Button name="Discover New Track" action={() => this.playDiscoverTrack()}/>
+            <Button name={this.state.saved ? "Saved!" : "Save Current Track"} action={() => this.saveCurrentTrack()}/>
+            <Button name={this.state.displayTrackInfo ? "Hide Track Info" : "Display Track Info"} action={() => this.displayTrackInfo()}/>
+            {this.state.displayTrackInfo && (
+              <div>
+                <Track track={this.state.currTrack}/>
+              </div>)
+            }
           </div>)
         }
 			</div>
 
 		)
 	}
-
 }

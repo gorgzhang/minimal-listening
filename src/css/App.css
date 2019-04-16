@@ -9,10 +9,3 @@
   align-items: center; /* Vertical */
   flex-direction: column;
 }
-
-.button {
-  margin: 10px;
-  height: 100%;
-  background-color: pink;
-  color: orange;
-}
