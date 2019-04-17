@@ -1,7 +1,7 @@
 import React, {Component} from 'react';
 
 const CLIENT_ID = "9eca37cf81d94340ba6627853b621ae7"
-const REDIRECT_URI = "http://localhost:3000/redirect"
+const REDIRECT_URI = "https://minimal-listening.herokuapp.com/redirect"
 // const CORS_ANYWHERE = "https://cors-anywhere.herokuapp.com/"
 
 export default class Button extends Component {
