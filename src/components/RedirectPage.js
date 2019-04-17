@@ -6,6 +6,7 @@ export default class RedirectPage extends Component {
 	constructor(props) {
 		super(props)
 		var hash = document.location["hash"]
+    console.log(document.location)
 		var token = null;
 		if (hash) {
 			token = hash.split("=")[1].split("&")[0]

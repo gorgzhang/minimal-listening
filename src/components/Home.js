@@ -19,13 +19,14 @@ export default class Home extends Component {
     this.playerCheckInterval = null;
     if (accessToken) {
       // Logged in - Get 50 recent album releases
-      var DISC_REQ_URL = "https://api.spotify.com/v1/browse/new-releases?country=US&limit=50&access_token=" + accessToken
-      axios.get(CORS_ANYWHERE + DISC_REQ_URL)
+      var USER_REQ_URL = "https://api.spotify.com/v1/me?access_token=" + accessToken
+      console.log(USER_REQ_URL)
+      axios.get(CORS_ANYWHERE + USER_REQ_URL)
         .then(response => {
             this.state = {
               loggedIn: true,
               accessToken: accessToken,
-              newMusic: response.data.albums.items,
+              account: response.data.product,
               displayTrackInfo: false,
               saved: false,
             }
@@ -33,7 +34,30 @@ export default class Home extends Component {
         ).catch(function (err) {
             console.log(err);
           }
+        ).then(() => {
+          if (this.state.account === "premium") {
+            var DISC_REQ_URL = "https://api.spotify.com/v1/browse/new-releases?country=US&limit=50&access_token=" + accessToken
+            axios.get(CORS_ANYWHERE + DISC_REQ_URL)
+              .then(response => {
+                  this.setState({
+                    ...this.state,
+                    loggedIn: true,
+                    accessToken: accessToken,
+                    newMusic: response.data.albums.items,
+                    displayTrackInfo: false,
+                    saved: false,
+                  })
+                }
+              ).catch(function (err) {
+                  console.log(err);
+                }
+              )
+            }
+          }
         )
+
+      
+      
 
       this.playerCheckInterval = setInterval(() => this.checkForPlayer(), 1000);
     } else {
@@ -56,8 +80,8 @@ export default class Home extends Component {
     if (this.state && this.state.loggedIn && window.Spotify) {
       var accessToken = this.state.accessToken;
       this.player = new window.Spotify.Player({
-        name: "Minimal Player",
-        getOAuthToken: cb => { cb(accessToken); },
+        name: "Minimal Listening",
+        getOAuthToken: cb => {cb(accessToken)},
       });
       clearInterval(this.playerCheckInterval);
       this.createEventHandlers();
@@ -237,6 +261,14 @@ export default class Home extends Component {
     })
   }
 
+  logOut() {
+    this.setState({
+      loggedIn: false,
+      displayTrackInfo: false,
+      saved: false,
+    })
+  }
+
   logState() {
     if (this.state) {
       console.log(this.state)
@@ -249,10 +281,23 @@ export default class Home extends Component {
 		return (
 			<div>
       <Button name="print" action={this.logState}/>
-        {!this.state && (<div> loading... </div>)}
+        {/** Page is Loading because its either waiting for state to load or waiting for player to load **/}
+        {(!this.state || (this.state.loggedIn && this.state.account === "premium" && !(this.state.deviceId))) &&
+          (<div> loading... </div>)
+        }
+
+        {/** Page has loaded but user is not premium **/}
+        {this.state && (this.state.account !== "premium") && 
+          <div> Spotify only allows external streaming for premium users. Apologies for the inconvience.</div>
+        }
+
+        {/** User has not yet logged in so there is no accessToken **/}
         {this.state && !this.state.loggedIn && (<Button name="login"/>)}
-        {this.state && this.state.loggedIn && this.state.deviceId && (
+
+        {/** User has logged in, is premium, and player has loaded  **/}
+        {this.state && this.state.loggedIn && this.state.deviceId && this.state.account === "premium" && (
           <div>
+            <Button name="Logout" action = {() => this.logOut()}/>
             <Button name={this.state.playing ? "Pause" : "Play"} action={() => this.onPlayClick()}/>
             <Button name="Discover New Track" action={() => this.playDiscoverTrack()}/>
             <Button name={this.state.saved ? "Saved!" : "Save Current Track"} action={() => this.saveCurrentTrack()}/>
