@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import Spinner from 'react-spinkit';  
 import Button from './Button.js';
 import Track from './Track.js';
 import './../css/App.css';
@@ -20,7 +21,6 @@ export default class Home extends Component {
     if (accessToken) {
       // Logged in - Get 50 recent album releases
       var USER_REQ_URL = "https://api.spotify.com/v1/me?access_token=" + accessToken
-      console.log(USER_REQ_URL)
       axios.get(CORS_ANYWHERE + USER_REQ_URL)
         .then(response => {
             this.state = {
@@ -55,9 +55,6 @@ export default class Home extends Component {
             }
           }
         )
-
-      
-      
 
       this.playerCheckInterval = setInterval(() => this.checkForPlayer(), 1000);
     } else {
@@ -119,7 +116,7 @@ export default class Home extends Component {
       const currTrack = currState.track_window.current_track;
       const currTrackName = currTrack.name;
       const currAlbumName = currTrack.album.name;
-      const currAlbumImage = currTrack.album.images[0].url
+      const currAlbumImage = currTrack.album.images[1].url
       const currArtistName = currTrack.artists
         .map(artist => artist.name)
         .join(", ");
@@ -262,11 +259,16 @@ export default class Home extends Component {
   }
 
   logOut() {
+    if (this.state && this.state.playing) {
+      this.onPlayClick()
+    }
+
     this.setState({
       loggedIn: false,
       displayTrackInfo: false,
       saved: false,
     })
+
   }
 
   logState() {
@@ -275,40 +277,90 @@ export default class Home extends Component {
     }
   }
 
+  // <Button name="print" action={this.logState}/> 
+
   /** END PAGE STATE **/
 
 	render() {
 		return (
-			<div>
-      <Button name="print" action={this.logState}/>
-        {/** Page is Loading because its either waiting for state to load or waiting for player to load **/}
-        {(!this.state || (this.state.loggedIn && this.state.account === "premium" && !(this.state.deviceId))) &&
-          (<div> loading... </div>)
-        }
+			<div className="container">
+        <div className="row row1">
+          <div className="small-box" style = {{color: "grey"}}>
+            <div> Minimal Listening </div>
+            <div> Discover new music without bias </div>
+          </div>
+          <div className="large-box">
+            {/* User has not yet logged in so there is no accessToken */}
+            {this.state && !this.state.loggedIn && (<Button name="Login"/>)}
 
-        {/** Page has loaded but user is not premium **/}
-        {this.state && this.state.loggedIn && this.state.account !== "premium" && 
-          <div> Spotify only allows external streaming for premium users. Apologies for the inconvience.</div>
-        }
+            {/* Logout Button */}
+            {this.state && this.state.loggedIn && this.state.deviceId && this.state.account === "premium" && (
+              <Button name="Logout" action = {() => this.logOut()}/>
+            )}
+          </div>
+        </div>
 
-        {/** User has not yet logged in so there is no accessToken **/}
-        {this.state && !this.state.loggedIn && (<Button name="login"/>)}
-
-        {/** User has logged in, is premium, and player has loaded  **/}
-        {this.state && this.state.loggedIn && this.state.deviceId && this.state.account === "premium" && (
-          <div>
-            <Button name="Logout" action = {() => this.logOut()}/>
-            <Button name={this.state.playing ? "Pause" : "Play"} action={() => this.onPlayClick()}/>
-            <Button name="Discover New Track" action={() => this.playDiscoverTrack()}/>
-            <Button name={this.state.saved ? "Saved!" : "Save Current Track"} action={() => this.saveCurrentTrack()}/>
-            <Button name={this.state.displayTrackInfo ? "Hide Track Info" : "Display Track Info"} action={() => this.displayTrackInfo()}/>
-            {this.state.displayTrackInfo && (
-              <div>
-                <Track track={this.state.currTrack}/>
-              </div>)
+        <div className="row row2">
+          <div className="small-box">
+            {/** Page is Loading because its either waiting for state to load or waiting for player to load **/}
+            {(!this.state || (this.state.loggedIn && this.state.account === "premium" && !(this.state.deviceId))) &&
+              (<div> Loading... </div>)
             }
-          </div>)
-        }
+
+
+            {/* Play New Track */}
+            {this.state && this.state.loggedIn && this.state.deviceId && this.state.account === "premium" && (
+              <Button name="Play New Track" action={() => this.playDiscoverTrack()}/>
+            )}
+          </div>
+          <div className="large-box"/>
+        </div>
+
+        <div className="row row3">
+          <div className="small-box"/>
+          <div className="large-box">
+
+            {/** Page has loaded but user is not premium **/}
+            {this.state && this.state.loggedIn && this.state.account !== "premium" && 
+              <div> Spotify only allows external streaming for premium users. Apologies for the inconvience.</div>
+            }
+          </div>
+        </div>
+
+        <div className="row row4">
+          <div className="small-box">
+            {/* Player Status Functions */}
+            {this.state && this.state.loggedIn && this.state.deviceId && this.state.account === "premium" && (
+              <div>
+                <div><Button name={this.state.playing ? "Pause" : "Play"} action={() => this.onPlayClick()}/></div>
+                <div><Button name={this.state.saved ? "Saved!" : "Save Current Track"} action={() => this.saveCurrentTrack()}/></div>
+                <div><Button name={this.state.displayTrackInfo ? "Hide Track Info" : "Display Track Info"} action={() => this.displayTrackInfo()}/></div>
+              </div>
+            )}
+          </div>
+          <div className="large-box"> 
+            <div className="spinner">
+              {this.state && this.state.playing && <Spinner name="line-scale" color="grey"/>}
+            </div>
+          </div>
+        </div>
+
+        <div className="row row5">
+          <div className="small-box">
+            {/* Track Info  */}
+            {this.state && this.state.loggedIn && this.state.deviceId && this.state.account === "premium" && (
+              <div>
+          
+                {this.state.displayTrackInfo && (
+                  <div>
+                    <Track track={this.state.currTrack}/>
+                  </div>)
+                }
+              </div>
+            )}
+          </div>
+          <div className="large-box"/>
+        </div>
 			</div>
 
 		)

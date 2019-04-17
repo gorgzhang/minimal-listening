@@ -21,11 +21,11 @@ export default class Track extends Component {
 		return (
       <div>
   			{this.state.track && 
-          (<div>
-  					<div>Artist: {this.state.track.artists.map(artist => artist.name).join(", ")} </div>
-            <div>Track: {this.state.track.name} </div>
-            <div>Album: {this.state.track.album.name} </div>
-            <img src={this.state.track.album.images[0].url} alt="album cover"/>
+          (<div style={{color:"grey"}}>
+            <img src={this.state.track.album.images[1].url} alt="album cover"/>
+            <div style={{marginTop: "10px"}}> {this.state.track.name} </div>
+  					<div>by {this.state.track.artists.map(artist => artist.name).join(", ")} </div>
+            <div>on {this.state.track.album.name} </div>     
   				</div>)
 		    }
       </div>

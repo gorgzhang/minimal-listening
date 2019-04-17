@@ -1,0 +1,67 @@
+.container {
+  min-height: 100vh;
+  font-size: calc(10px + 0.8vmin);
+  width: 100%;
+}
+
+.row {
+  left: 17%;
+  position: absolute;
+  height: 10%;
+  width: 100%;
+}
+
+.row1 {
+  top: 10%;
+}
+
+.row2 {
+  top: 20%;
+}
+
+.row3 {
+  height: 10%;
+  top: 40%;
+}
+
+.row4 {
+  top: 50%;
+}
+
+.row5 {
+  height: 30%;
+  top: 70%;
+}
+
+.small-box {
+  position: absolute;
+  height: 100%;
+  width: 30%;
+/*  border: 1px solid black;
+*/}
+
+.large-box {
+  position: absolute;
+  left: 45%;
+  height: 100%;
+  width: 30%;
+/*  border: 1px solid black;
+*/}
+
+.Button {
+  display: inline-block;
+  cursor: pointer;
+}
+
+.Button:hover {
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.spinner {
+  position: absolute;
+}
+
+.sk-spinner {
+  transform: scale(0.5);
+}
