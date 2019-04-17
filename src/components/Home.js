@@ -287,7 +287,7 @@ export default class Home extends Component {
         }
 
         {/** Page has loaded but user is not premium **/}
-        {this.state && (this.state.account !== "premium") && 
+        {this.state && this.state.loggedIn && this.state.account !== "premium" && 
           <div> Spotify only allows external streaming for premium users. Apologies for the inconvience.</div>
         }
 
