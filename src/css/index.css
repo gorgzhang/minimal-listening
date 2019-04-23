@@ -9,7 +9,9 @@ body {
   overflow: hidden;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
-    monospace;
+
+@media screen and (max-width: 500px) {
+  body {
+    overflow: scroll;
+  }
 }

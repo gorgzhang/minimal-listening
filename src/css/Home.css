@@ -1,11 +1,11 @@
 .container {
   min-height: 100vh;
-  font-size: calc(10px + 0.8vmin);
+  font-size: calc(10px + 1vmin);
   width: 100%;
 }
 
 .row {
-  left: 17%;
+  left: 24%;
   position: absolute;
   height: 10%;
   width: 100%;
@@ -17,6 +17,7 @@
 
 .row2 {
   top: 20%;
+  z-index: 100;
 }
 
 .row3 {
@@ -25,12 +26,12 @@
 }
 
 .row4 {
-  top: 50%;
+  top: 60%;
 }
 
 .row5 {
   height: 30%;
-  top: 70%;
+  top: 105%;
 }
 
 .small-box {
@@ -42,11 +43,11 @@
 
 .large-box {
   position: absolute;
-  left: 45%;
+  left: 35%;
   height: 100%;
   width: 30%;
-/*  border: 1px solid black;
-*/}
+/*  border: 1px solid black;*/
+}
 
 .Button {
   display: inline-block;
@@ -60,8 +61,65 @@
 
 .spinner {
   position: absolute;
+  left: -10px;
+  top: -10px;
 }
 
 .sk-spinner {
   transform: scale(0.5);
+}
+
+.Playlist {
+  cursor: pointer;
+}
+
+.Playlist:hover {
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.noSupport {
+  display: none;
+}
+
+
+@media screen and (max-width: 450px) {
+  .row {
+    left: 5%;
+    position: absolute;
+    height: 10%;
+    width: 94%;
+  }
+
+  .small-box {
+    position: absolute;
+    height: 100%;
+    width: 40%;
+
+  } 
+
+  .large-box {
+    position: absolute;
+    left: 50%;
+    height: 100%;
+    width: 40%;
+  }
+
+  .row1 {
+    top: 5%;
+  }
+
+  .row2 {
+    top: 30%;
+    z-index: 100;
+  }
+
+  .row3 {
+    height: 10%;
+    top: 60%;
+  }
+
+  .row4 {
+    top: 90%;
+  }
 }

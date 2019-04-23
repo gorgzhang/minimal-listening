@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import Spinner from 'react-spinkit';  
 import Button from './Button.js';
 import Track from './Track.js';
+import Playlist from './Playlist.js'
 import './../css/App.css';
 import './../css/Home.css';
 import axios from 'axios'
@@ -19,7 +20,7 @@ export default class Home extends Component {
     }
     this.playerCheckInterval = null;
     if (accessToken) {
-      // Logged in - Get 50 recent album releases
+      // Get accessToken and check if spotify premium
       var USER_REQ_URL = "https://api.spotify.com/v1/me?access_token=" + accessToken
       axios.get(CORS_ANYWHERE + USER_REQ_URL)
         .then(response => {
@@ -27,34 +28,75 @@ export default class Home extends Component {
               loggedIn: true,
               accessToken: accessToken,
               account: response.data.product,
-              displayTrackInfo: false,
+              displayTrackInfo: true,
               saved: false,
+              playing: false,
+              minutesLeft: 59,
+              displayPlaylists: false
             }
+
+            this.minuteInterval = setInterval(() => {
+              this.setState({
+                ...this.state,
+                minutesLeft : this.state.minutesLeft - 1
+              })
+
+              if (this.state.minutesLeft <= 0) {
+                clearInterval(this.minuteInterval);
+                this.logOut()
+              }
+            }, 60000)
           }
         ).catch(function (err) {
             console.log(err);
           }
         ).then(() => {
+          // Get New Relases
           if (this.state.account === "premium") {
             var DISC_REQ_URL = "https://api.spotify.com/v1/browse/new-releases?country=US&limit=50&access_token=" + accessToken
             axios.get(CORS_ANYWHERE + DISC_REQ_URL)
               .then(response => {
                   this.setState({
                     ...this.state,
-                    loggedIn: true,
-                    accessToken: accessToken,
                     newMusic: response.data.albums.items,
-                    displayTrackInfo: false,
-                    saved: false,
                   })
-                }
-              ).catch(function (err) {
-                  console.log(err);
+                })
+              .catch(function (err) {
+                  console.log(err)
                 }
               )
             }
           }
-        )
+        ).then(() => {
+          if (this.state.account === "premium") {
+            var FEAT_PLAYLIST_URL = "https://api.spotify.com/v1/browse/featured-playlists?country=US&limit=10&access_token=" + accessToken
+            axios.get(CORS_ANYWHERE + FEAT_PLAYLIST_URL)
+              .then(async response => {
+                await this.setState({
+                  ...this.state,
+                  featuredPlaylists: response.data.playlists.items
+                })
+
+
+                var featPlaylistNameToIndex = {}
+                for (var index in this.state.featuredPlaylists) {
+                  var name = this.state.featuredPlaylists[index].name
+                  featPlaylistNameToIndex[name] = index 
+                }
+
+                await this.setState({
+                  ...this.state,
+                  featPlaylistNameToIndex: featPlaylistNameToIndex,
+                  currPlaylistIndex: "NR",
+                  currPlaylistName: "New Releases"
+                })
+              })
+              .catch(function (err) {
+                console.log(err)
+              })
+          }
+
+        })
 
       this.playerCheckInterval = setInterval(() => this.checkForPlayer(), 1000);
     } else {
@@ -189,6 +231,16 @@ export default class Home extends Component {
 
   /** START TRACK INFO **/ 
 
+  async playTrack() {
+    if (this.state && this.state.deviceId && this.state.currPlaylistIndex) {
+      if (this.state.currPlaylistIndex === "NR") {
+        this.playDiscoverTrack()
+      } else {
+        this.playFeauturedTrack()
+      }
+    }
+  }
+
   // Get info about what's currently playing
   getCurrentTrack() {
     if (this.state && this.state.deviceId) {
@@ -223,6 +275,33 @@ export default class Home extends Component {
     }
   }
 
+  // Query the current playlist and play a random song from it
+  async playFeauturedTrack() {
+    if (this.state && this.state.deviceId && this.state.currPlaylistIndex) {
+      var playlistId = this.state.featuredPlaylists[this.state.currPlaylistIndex].id
+      var PL_TRACKS_URL = "https://api.spotify.com/v1/playlists/" + playlistId + "/tracks/?access_token=" + this.state.accessToken
+      axios.get(CORS_ANYWHERE + PL_TRACKS_URL)
+        .then(async response => {
+          var totalTracks = response.data.total
+          var offset = Math.floor(Math.random() * totalTracks)
+          var trackURI = response.data.items[offset].track.uri
+          fetch("https://api.spotify.com/v1/me/player/play", {
+            method: "PUT",
+            headers: {
+              authorization: `Bearer ${this.state.accessToken}`,
+            },
+            device_id: this.state.deviceId,
+            body: JSON.stringify({
+              "uris": [trackURI]
+            }),
+          }).then(() => {this.setState({...this.state, saved: false})})
+        })
+        .catch(function (err) {
+          console.log(err);
+        })
+    }
+  }
+
   // Save what is currently playing
   saveCurrentTrack() {
     if (this.state && this.state.deviceId) {
@@ -246,6 +325,35 @@ export default class Home extends Component {
     }
   }
 
+
+  async setCurrentFeaturedPlaylistTracks(playlistId, offset) {
+    var TRACK_REQ_URL = "https://api.spotify.com/v1/playlists/" + playlistId + "/tracks/?access_token=" + this.state.accessToken + "&offset=" + offset
+    await axios.get(CORS_ANYWHERE + TRACK_REQ_URL)
+      .then(response => {
+        console.log(response)
+      })
+  }
+
+  setCurrPlaylist(playlistIndex) {
+    if (playlistIndex === "NR") {
+      this.setState({
+        ...this.state,
+        currPlaylistIndex: playlistIndex,
+        currPlaylistName: "New Releases"
+      })
+    } else {
+      this.setState({
+        ...this.state,
+        currPlaylistIndex: playlistIndex,
+        currPlaylistName: this.state.featuredPlaylists[playlistIndex].name
+      })
+    }
+  }
+
+  getTrackFromFeaturedPlaylists(currPlaylist) {
+    console.log("not implemented")
+  }
+
   /** END TRACK INFO **/
 
   /** START PAGE STATE **/
@@ -258,10 +366,20 @@ export default class Home extends Component {
     })
   }
 
+  displayPlaylists() {
+    this.setState({
+      ...this.state,
+      displayPlaylists: !this.state.displayPlaylists
+    })
+  }
+
   logOut() {
+    // Stop the music
     if (this.state && this.state.playing) {
       this.onPlayClick()
     }
+
+    // Cancel countdown interval
 
     this.setState({
       loggedIn: false,
@@ -283,19 +401,24 @@ export default class Home extends Component {
 
 	render() {
 		return (
+      <div>
+      <div className="noSupport"> Please use desktop for a better experience! </div>
 			<div className="container">
         <div className="row row1">
           <div className="small-box" style = {{color: "grey"}}>
             <div> Minimal Listening </div>
-            <div> Discover new music without bias </div>
+            <div> Discover New Music Without Bias </div>
           </div>
           <div className="large-box">
             {/* User has not yet logged in so there is no accessToken */}
-            {this.state && !this.state.loggedIn && (<Button name="Login"/>)}
+            {this.state && !this.state.loggedIn && (<Button name="Login with Spotify Premium"/>)}
 
             {/* Logout Button */}
             {this.state && this.state.loggedIn && this.state.deviceId && this.state.account === "premium" && (
-              <Button name="Logout" action = {() => this.logOut()}/>
+              <div>
+                <Button name="Logout" action = {() => this.logOut()}/>
+                <div style={{color:"grey"}}> Minutes Remaining: {this.state.minutesLeft} </div>
+              </div>
             )}
           </div>
         </div>
@@ -307,27 +430,43 @@ export default class Home extends Component {
               (<div> Loading... </div>)
             }
 
-
-            {/* Play New Track */}
-            {this.state && this.state.loggedIn && this.state.deviceId && this.state.account === "premium" && (
-              <Button name="Play New Track" action={() => this.playDiscoverTrack()}/>
-            )}
-          </div>
-          <div className="large-box"/>
-        </div>
-
-        <div className="row row3">
-          <div className="small-box"/>
-          <div className="large-box">
-
             {/** Page has loaded but user is not premium **/}
             {this.state && this.state.loggedIn && this.state.account !== "premium" && 
               <div> Spotify only allows external streaming for premium users. Apologies for the inconvience.</div>
             }
+
+            {/* Play New Track */}
+            {this.state && this.state.loggedIn && this.state.deviceId && this.state.account === "premium" && (
+              <div>
+                <Button name="Play New Track" action={() => this.playTrack()}/>
+                <div style={{color: "grey"}}> from {this.state.currPlaylistName} </div>
+              </div>
+            )}
+          </div>
+          <div className="large-box">
+          {/* Selcting which playlist to play music from */}
+          {this.state && this.state.loggedIn && this.state.deviceId && this.state.account === "premium" && this.state.featuredPlaylists && (
+            <Button name={this.state.displayPlaylists ? "Hide Spotify Featured Playlists" : "Select From Spotify Featured Playlists"} action={() => this.displayPlaylists()}/>
+          )}
+          {this.state && this.state.loggedIn && this.state.deviceId && this.state.account === "premium" && this.state.featuredPlaylists && this.state.displayPlaylists && (
+            <div>
+              <Playlist active={this.state.currPlaylistIndex === "NR"} name="New Releases" index="NR" action={() => this.setCurrPlaylist("NR")}/>
+              <Playlist active={this.state.currPlaylistIndex === 0} name={this.state.featuredPlaylists[0].name} index={0} action={() => this.setCurrPlaylist(0)}/>
+              <Playlist active={this.state.currPlaylistIndex === 1} name={this.state.featuredPlaylists[1].name} index={1} action={() => this.setCurrPlaylist(1)}/>
+              <Playlist active={this.state.currPlaylistIndex === 2} name={this.state.featuredPlaylists[2].name} index={2} action={() => this.setCurrPlaylist(2)}/>
+              <Playlist active={this.state.currPlaylistIndex === 3} name={this.state.featuredPlaylists[3].name} index={3} action={() => this.setCurrPlaylist(3)}/>
+              <Playlist active={this.state.currPlaylistIndex === 4} name={this.state.featuredPlaylists[4].name} index={4} action={() => this.setCurrPlaylist(4)}/>
+              <Playlist active={this.state.currPlaylistIndex === 5} name={this.state.featuredPlaylists[5].name} index={5} action={() => this.setCurrPlaylist(5)}/>
+              <Playlist active={this.state.currPlaylistIndex === 6} name={this.state.featuredPlaylists[6].name} index={6} action={() => this.setCurrPlaylist(6)}/>
+              <Playlist active={this.state.currPlaylistIndex === 7} name={this.state.featuredPlaylists[7].name} index={7} action={() => this.setCurrPlaylist(7)}/>
+              <Playlist active={this.state.currPlaylistIndex === 8} name={this.state.featuredPlaylists[8].name} index={8} action={() => this.setCurrPlaylist(8)}/>
+              <Playlist active={this.state.currPlaylistIndex === 9} name={this.state.featuredPlaylists[9].name} index={9} action={() => this.setCurrPlaylist(9)}/>
+            </div>
+          )}
           </div>
         </div>
 
-        <div className="row row4">
+        <div className="row row3">
           <div className="small-box">
             {/* Player Status Functions */}
             {this.state && this.state.loggedIn && this.state.deviceId && this.state.account === "premium" && (
@@ -338,14 +477,10 @@ export default class Home extends Component {
               </div>
             )}
           </div>
-          <div className="large-box"> 
-            <div className="spinner">
-              {this.state && this.state.playing && <Spinner name="line-scale" color="grey"/>}
-            </div>
+          <div className="large-box">
           </div>
         </div>
-
-        <div className="row row5">
+        <div className="row row4">
           <div className="small-box">
             {/* Track Info  */}
             {this.state && this.state.loggedIn && this.state.deviceId && this.state.account === "premium" && (
@@ -359,10 +494,21 @@ export default class Home extends Component {
               </div>
             )}
           </div>
-          <div className="large-box"/>
+          <div className="large-box"> 
+            <div className="spinner">
+              {this.state && this.state.playing && <Spinner name="line-scale" color="grey"/>}
+            </div>
+          </div>
+        </div>
+
+        <div className="row row5">
+          <div className="small-box">
+          </div>
+          <div className="large-box">
+          </div>
         </div>
 			</div>
-
+      </div>
 		)
 	}
 }
