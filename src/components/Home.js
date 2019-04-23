@@ -417,7 +417,6 @@ export default class Home extends Component {
             {this.state && this.state.loggedIn && this.state.deviceId && this.state.account === "premium" && (
               <div>
                 <Button name="Logout" action = {() => this.logOut()}/>
-                <div style={{color:"grey"}}> Minutes Remaining: {this.state.minutesLeft} </div>
               </div>
             )}
           </div>
