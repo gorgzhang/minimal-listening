@@ -425,7 +425,7 @@ export default class Home extends Component {
         <div className="row row2">
           <div className="small-box">
             {/** Page is Loading because its either waiting for state to load or waiting for player to load **/}
-            {(!this.state || (this.state.loggedIn && this.state.account === "premium" && (!this.state.deviceId) || !this.state.currPlaylistName)) &&
+            {(!this.state || (this.state.loggedIn && this.state.account === "premium" && (!this.state.deviceId || !this.state.currPlaylistName))) &&
               (<div> Loading... </div>)
             }
 
