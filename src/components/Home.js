@@ -67,6 +67,9 @@ export default class Home extends Component {
               )
             }
           }
+        ).catch(function (err) {
+            console.log(err);
+          }
         ).then(() => {
           if (this.state.account === "premium") {
             var FEAT_PLAYLIST_URL = "https://api.spotify.com/v1/browse/featured-playlists?country=US&limit=10&access_token=" + accessToken
@@ -96,7 +99,10 @@ export default class Home extends Component {
               })
           }
 
-        })
+        }).catch(function (err) {
+            console.log(err);
+          }
+        )
 
       this.playerCheckInterval = setInterval(() => this.checkForPlayer(), 1000);
     } else {
@@ -188,12 +194,21 @@ export default class Home extends Component {
         "device_ids": [ deviceId ],
         "play": false,
       }),
-    })
+    }).catch(function (err) {
+        console.log(err);
+      }
+    )
   }
 
   // Toggle play/pause
   onPlayClick() {
-    this.player.togglePlay();
+    var playPromise = this.player.togglePlay();
+
+    if (playPromise !== undefined) {
+      playPromise.then(this.player.togglePlay())
+    } else {
+      console.log('pause error')
+    }
   }
   /** END PLAYER FUNCTIONS **/
 
@@ -271,7 +286,15 @@ export default class Home extends Component {
           body: JSON.stringify({
             "uris": [trackURI]
           }),
-        }).then(() => {this.setState({...this.state, saved: false})})
+        }).then(() => {
+          this.setState({
+            ...this.state,
+            saved: false})
+        })
+        .catch(function (err) {
+            console.log(err);
+          }
+        )
     }
   }
 
@@ -294,7 +317,15 @@ export default class Home extends Component {
             body: JSON.stringify({
               "uris": [trackURI]
             }),
-          }).then(() => {this.setState({...this.state, saved: false})})
+          }).then(() => {
+            this.setState({
+              ...this.state,
+              saved: false})
+          }).catch(function (err) {
+            console.log(err);
+            }
+          )
+
         })
         .catch(function (err) {
           console.log(err);
@@ -321,7 +352,10 @@ export default class Home extends Component {
           ...this.state,
           saved: true
         })
-      })
+      }).catch(function (err) {
+            console.log(err);
+          }
+        )
     }
   }
 
@@ -401,7 +435,7 @@ export default class Home extends Component {
 
 	render() {
 		return (
-      <div>
+      <div allow="encrypted-media, autoplay">
       <div className="noSupport"> Please use desktop for a better experience! </div>
 			<div className="container">
         <div className="row row1">
@@ -450,16 +484,36 @@ export default class Home extends Component {
           {this.state && this.state.loggedIn && this.state.deviceId && this.state.account === "premium" && this.state.featuredPlaylists && this.state.displayPlaylists && (
             <div>
               <Playlist active={this.state.currPlaylistIndex === "NR"} name="New Releases" index="NR" action={() => this.setCurrPlaylist("NR")}/>
-              <Playlist active={this.state.currPlaylistIndex === 0} name={this.state.featuredPlaylists[0].name} index={0} action={() => this.setCurrPlaylist(0)}/>
-              <Playlist active={this.state.currPlaylistIndex === 1} name={this.state.featuredPlaylists[1].name} index={1} action={() => this.setCurrPlaylist(1)}/>
-              <Playlist active={this.state.currPlaylistIndex === 2} name={this.state.featuredPlaylists[2].name} index={2} action={() => this.setCurrPlaylist(2)}/>
-              <Playlist active={this.state.currPlaylistIndex === 3} name={this.state.featuredPlaylists[3].name} index={3} action={() => this.setCurrPlaylist(3)}/>
-              <Playlist active={this.state.currPlaylistIndex === 4} name={this.state.featuredPlaylists[4].name} index={4} action={() => this.setCurrPlaylist(4)}/>
-              <Playlist active={this.state.currPlaylistIndex === 5} name={this.state.featuredPlaylists[5].name} index={5} action={() => this.setCurrPlaylist(5)}/>
-              <Playlist active={this.state.currPlaylistIndex === 6} name={this.state.featuredPlaylists[6].name} index={6} action={() => this.setCurrPlaylist(6)}/>
-              <Playlist active={this.state.currPlaylistIndex === 7} name={this.state.featuredPlaylists[7].name} index={7} action={() => this.setCurrPlaylist(7)}/>
-              <Playlist active={this.state.currPlaylistIndex === 8} name={this.state.featuredPlaylists[8].name} index={8} action={() => this.setCurrPlaylist(8)}/>
-              <Playlist active={this.state.currPlaylistIndex === 9} name={this.state.featuredPlaylists[9].name} index={9} action={() => this.setCurrPlaylist(9)}/>
+              {this.state.featuredPlaylists[0] && (
+                <Playlist active={this.state.currPlaylistIndex === 0} name={this.state.featuredPlaylists[0].name} index={0} action={() => this.setCurrPlaylist(0)}/>
+              )}
+              {this.state.featuredPlaylists[1] && (
+                <Playlist active={this.state.currPlaylistIndex === 1} name={this.state.featuredPlaylists[1].name} index={1} action={() => this.setCurrPlaylist(1)}/>
+              )}
+              {this.state.featuredPlaylists[2] && (
+                <Playlist active={this.state.currPlaylistIndex === 2} name={this.state.featuredPlaylists[2].name} index={2} action={() => this.setCurrPlaylist(2)}/>
+              )}
+              {this.state.featuredPlaylists[3] && (
+                <Playlist active={this.state.currPlaylistIndex === 3} name={this.state.featuredPlaylists[3].name} index={3} action={() => this.setCurrPlaylist(3)}/>
+              )}
+              {this.state.featuredPlaylists[4] && (
+                <Playlist active={this.state.currPlaylistIndex === 4} name={this.state.featuredPlaylists[4].name} index={4} action={() => this.setCurrPlaylist(4)}/>
+              )}
+              {this.state.featuredPlaylists[5] && (
+                <Playlist active={this.state.currPlaylistIndex === 5} name={this.state.featuredPlaylists[5].name} index={5} action={() => this.setCurrPlaylist(5)}/>
+              )}
+              {this.state.featuredPlaylists[6] && (
+                <Playlist active={this.state.currPlaylistIndex === 6} name={this.state.featuredPlaylists[6].name} index={6} action={() => this.setCurrPlaylist(6)}/>
+              )}
+              {this.state.featuredPlaylists[7] && (
+                <Playlist active={this.state.currPlaylistIndex === 7} name={this.state.featuredPlaylists[7].name} index={7} action={() => this.setCurrPlaylist(7)}/>
+              )}
+              {this.state.featuredPlaylists[8] && (
+                <Playlist active={this.state.currPlaylistIndex === 8} name={this.state.featuredPlaylists[8].name} index={8} action={() => this.setCurrPlaylist(8)}/>
+              )}
+              {this.state.featuredPlaylists[9] && (
+                <Playlist active={this.state.currPlaylistIndex === 9} name={this.state.featuredPlaylists[9].name} index={9} action={() => this.setCurrPlaylist(9)}/>
+              )}
             </div>
           )}
           </div>
